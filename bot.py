@@ -1,3 +1,4 @@
+import asyncio
 from telegram.ext import Updater, CommandHandler, MessageHandler, filters as Filters
 from google_books import GoogleBooksAPI
 from db import Database
@@ -10,7 +11,7 @@ class BookBot:
     def __init__(self):
         self.api = GoogleBooksAPI()
         self.db = Database()
-        self.updater = Updater(os.getenv("TELEGRAM_TOKEN"))
+        self.updater = Updater(os.getenv("TELEGRAM_TOKEN"), asyncio.Queue())
         
         # Регистрация обработчиков
         dp = self.updater.dispatcher
