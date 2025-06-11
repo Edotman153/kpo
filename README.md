@@ -39,6 +39,62 @@
 Предполагаемое число пользователей: 10к в сутки.
 
 Характер нагрузки на сервис:
-3:1 (Read/Write). Большая часть запросов — отображение избранного, поиск книг и получение информации о конкретной книге(Read), тогда как добавление и удаление из избранного, а также регистрация пользователей(Write) происходят реже.
+3:1 (Read/Write). Большая часть запросов — отображение избранного, поиск книг и получение информации о конкретной книге (Read), тогда как добавление и удаление из избранного, а также регистрация пользователей (Write) происходят реже.
+
 Объемы трафика:
+Запросов/сутки: 10000
+Данные/запрос: 2-5 КВ
+Месячный трафик: 700-1500 MB
+
 Объемы дисковой системы:
+PostgreSQL: 100-200 GB
+Логи: 2 GB/мес
+
+Первые две диаграммы С4:
+Context Diagram:
+![Снимок экрана от 2025-06-11 18-32-55](https://github.com/user-attachments/assets/23eea72c-0e29-4a59-8bb7-b6329fe2a871)
+
+Container Diagram:
+![Снимок экрана от 2025-06-11 18-33-10](https://github.com/user-attachments/assets/c26ccccc-b6d4-4d22-a698-ef637f21d526)
+
+Контракты API:
+Google Books API:
+endpoint: GET https://www.googleapis.com/books/v1/volumes
+params:
+  q: string  # Поисковый запрос
+  maxResults: integer
+  key: string  # API-ключ
+response:
+  items: 
+    - id: string
+      volumeInfo:
+        title: string
+        authors: string[]
+        description: string
+        imageLinks: {thumbnail: string}
+
+Нефункциональные требования:
+Время ответа бота: <1 сек
+Доступность: 99%
+Лимиты API: 1000 запросов/день у Google Books
+
+Схема базы данных:
+![Снимок экрана от 2025-06-11 18-58-12](https://github.com/user-attachments/assets/f98d8295-b769-459b-ae9d-e06cf57d1e62)
+
+База данных должна соответствовать нефункциональным требованиям, потому что:
+Индексы:
+CREATE INDEX idx_user_books ON favorite_book(user_id);
+CREATE INDEX idx_book_id ON favorite_book(book_id);
+
+Масштабирование при 10x нагрузке
+Вертикальное:
+Увеличение CPU/RAM для PostgreSQL (2 vCPU → 4 vCPU)
+Кеширование Redis для популярных поисковых запросов
+
+Горизонтальное
+![Снимок экрана от 2025-06-11 19-30-07](https://github.com/user-attachments/assets/9093d28c-5d42-46fe-82b3-260115113895)
+
+Оптимизации
+Асинхронные запросы: Использование aiohttp вместо requests
+Батчинг: Группировка запросов к БД
+CDN: Для кеширования обложек книг
