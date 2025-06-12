@@ -1,5 +1,6 @@
 import os
 import requests
+import aiohttp
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,7 +11,7 @@ class GoogleBooksAPI:
     def __init__(self):
         self.api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
     
-    def search_books(self, query, max_results=5):
+    async def search_books(self, query, max_results=5):
         params = {
             "q": query,
             "key": self.api_key,
