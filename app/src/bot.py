@@ -1,9 +1,9 @@
 import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from google_books import GoogleBooksAPI
-from open_lib import OpenLibraryAPI
-from db import Database
+from .google_books import GoogleBooksAPI
+from .open_lib import OpenLibraryAPI
+from .db import Database
 from dotenv import load_dotenv
 import os
 import logging
