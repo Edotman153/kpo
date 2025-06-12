@@ -83,7 +83,7 @@ CREATE INDEX idx_book_id ON favorite_book(book_id);
 Масштабирование при 10x нагрузке
 Вертикальное:
 Увеличение CPU/RAM для PostgreSQL (2 vCPU → 4 vCPU)
-Кеширование Redis для популярных поисковых запросов
+Кэширование Redis для популярных поисковых запросов
 
 Горизонтальное
 ![Снимок экрана от 2025-06-11 19-30-07](https://github.com/user-attachments/assets/9093d28c-5d42-46fe-82b3-260115113895)
@@ -91,4 +91,4 @@ CREATE INDEX idx_book_id ON favorite_book(book_id);
 Оптимизации
 Асинхронные запросы: Использование aiohttp вместо requests
 Батчинг: Группировка запросов к БД
-CDN: Для кеширования обложек книг
+CDN: Для кэширования обложек книг
