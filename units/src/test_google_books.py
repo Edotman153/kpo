@@ -1,12 +1,16 @@
 import pytest
-from ...app.src.google_books import GoogleBooksAPI
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+from app.src.google_books import GoogleBooksAPI
+import asyncio
+import requests
 
+@pytest.mark.asyncio
 class TestGoogleBooksAPI:
-    @patch("requests.get")  # Мокаем запросы к API
-    def test_search_books_success(self, mock_get):
-        # Подготовка мок-ответа
-        mock_response = {
+    @patch('app.src.google_books.requests.get')
+    async def test_search_books_success(self, mock_get):
+        # Настраиваем мок для requests.get
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
             "items": [
                 {
                     "id": "test123",
@@ -19,19 +23,37 @@ class TestGoogleBooksAPI:
                 }
             ]
         }
-        mock_get.return_value.json.return_value = mock_response
-        mock_get.return_value.status_code = 200
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
 
-        # Вызов тестируемого метода
+        # Вызываем асинхронный метод
         api = GoogleBooksAPI()
-        books = api.search_books("Test")
+        books = await api.search_books("Test")
 
-        # Проверки
+        # Проверяем результаты
         assert len(books) == 1
         assert books[0]["title"] == "Test Book"
         assert books[0]["authors"] == "Author 1"
+        assert books[0]["description"] == "Test description"
+        assert books[0]["thumbnail"] == "http://test.com/cover.jpg"
 
-    def test_search_books_empty(self):
+    @patch('app.src.google_books.requests.get')
+    async def test_search_books_empty_response(self, mock_get):
+        mock_response = MagicMock()
+        mock_response.json.return_value = {}
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
         api = GoogleBooksAPI()
-        books = api.search_books("")  # Пустой запрос
+        books = await api.search_books("Unknown")
+
+        assert books == []
+
+    @patch('app.src.google_books.requests.get')
+    async def test_search_books_error_handling(self, mock_get):
+        mock_get.side_effect = requests.exceptions.RequestException("API Error")
+
+        api = GoogleBooksAPI()
+        books = await api.search_books("Error Test")
+
         assert books == []
