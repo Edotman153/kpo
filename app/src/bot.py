@@ -28,15 +28,12 @@ class BookBot:
         self.application.add_handler(CommandHandler("start", self.start))
         self.application.add_handler(MessageHandler(Filters.Regex(r'Помощь$'), self.help))
         self.application.add_handler(MessageHandler(Filters.Regex(r'^⭐ Избранное$'), self.show_favorites))
-        self.application.add_handler(MessageHandler(Filters.Regex(r'^🔍 Поиск книги$'), self.handle_search_button))
-    
+        self.application.add_handler(MessageHandler(Filters.TEXT, self.search_books))
     async def start(self, update, context):
         """Обработчик команды /start - показывает клавиатуру"""
         await update.message.reply_text(
             "📚 Добро пожаловать в книжный бот!\n\n"
-            "Вы можете:\n"
-            "- Нажать кнопку '🔍 Поиск книги' и ввести название\n"
-            "- Просто написать название книги в чат",
+            "C его помощью можно искать книги, просто введите название",
             reply_markup=self.reply_keyboard
         )
     async def help(self, update, context):
@@ -52,14 +49,9 @@ class BookBot:
             "Введите название книги или автора:",
             reply_markup=self.reply_keyboard
         )
-    
-    async def handle_message(self, update, context):
-        """Обработчик всех текстовых сообщений"""
-        text = update.message.text
-        await self.search_books(update, context, text)
-    
-    async def search_books(self, update, context, query):
+    async def search_books(self, update, context):
         """Поиск книг и вывод результатов"""
+        query = update.message.text
         if not query:
             await update.message.reply_text("Пожалуйста, введите название книги")
             return
@@ -69,7 +61,7 @@ class BookBot:
         if not books:
             books = await self.open_library_api.search_books(query)
             if not books:
-                await update.message.reply_text("Книги не найдены 😢 Попробуйте другой запрос")
+                await update.message.reply_text("Книги не найдены 😢\nПожалуйста, попробуйте другой запрос")
                 return
         for book in books:
             msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:500]}..."
