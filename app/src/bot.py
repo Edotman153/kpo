@@ -57,8 +57,8 @@ class BookBot:
             return
         
         try:
-            books = await self.google_api.search_books(query)
-            if not books:
+            #books = await self.google_api.search_books(query)
+            if True:
                 books = await self.open_lib_api.search_books(query)
                 if not books:
                     await update.message.reply_text("Книги не найдены 😢\nПопробуйте другой запрос")
@@ -186,40 +186,40 @@ class BookBot:
     
             # Если не нашли в Google Books, пробуем Open Library
             if book_id.startswith('OL') or not book_id:  # Open Library ID обычно начинается с OL
-                async with self.open_lib_api.session.get(
+                with self.open_lib_api.session.get(
                     f"{self.open_lib_api.BASE_URL}/works/{book_id}.json"
                 ) as response:
-                    if response.status == 200:
-                        work_data = await response.json()
-                        description = work_data.get('description')
-                        if isinstance(description, dict):
-                            description = description.get('value', "Нет описания")
+                    response.raise_for_status()
+                    work_data = response.json()
+                    description = work_data.get('description')
+                    if isinstance(description, dict):
+                        description = description.get('value', "Нет описания")
                     
                     # Получаем обложку отдельно
-                        cover_id = work_data.get('covers', [None])[0]
-                        thumbnail = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else None
+                    cover_id = work_data.get('covers', [None])[0]
+                    thumbnail = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else None
                     
                     # Получаем авторов
-                        authors = []
-                        if work_data.get('authors'):
-                            for author in work_data['authors']:
-                                if isinstance(author, dict) and author.get('author'):
-                                    author_key = author['author'].get('key')
-                                    if author_key:
-                                        async with self.open_lib_api.session.get(
-                                            f"{self.open_lib_api.BASE_URL}{author_key}.json"
-                                        ) as author_resp:
-                                            if author_resp.status == 200:
-                                                author_data = await author_resp.json()
-                                                authors.append(author_data.get('name', 'Неизвестный автор'))
+                    authors = []
+                    if work_data.get('authors'):
+                        for author in work_data['authors']:
+                            if isinstance(author, dict) and author.get('author'):
+                                author_key = author['author'].get('key')
+                                if author_key:
+                                    with self.open_lib_api.session.get(
+                                        f"{self.open_lib_api.BASE_URL}{author_key}.json"
+                                    ) as author_resp:
+                                        author_resp.raise_for_status()
+                                        author_data = author_resp.json()
+                                        authors.append(author_data.get('name', 'Неизвестный автор'))
                     
-                        return {
-                            "id": book_id,
-                            "title": work_data.get('title', 'Без названия'),
-                            "authors": ", ".join(authors) if authors else "Неизвестен",
-                            "description": description or "Нет описания",
-                            "thumbnail": thumbnail
-                        }
+                    return {
+                        "id": book_id,
+                        "title": work_data.get('title', 'Без названия'),
+                        "authors": ", ".join(authors) if authors else "Неизвестен",
+                        "description": description or "Нет описания",
+                        "thumbnail": thumbnail
+                    }
     
         except Exception as e:
             print(f"Ошибка добавления в избранное: {e}")
