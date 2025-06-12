@@ -6,7 +6,7 @@ from open_lib import OpenLibraryAPI
 from db import Database
 from dotenv import load_dotenv
 import os
-
+import logging
 load_dotenv()
 
 class BookBot:
@@ -28,7 +28,7 @@ class BookBot:
         self.application.add_handler(CommandHandler("start", self.start))
         self.application.add_handler(MessageHandler(filters.Regex(r'^ℹ Помощь$'), self.help))
         self.application.add_handler(MessageHandler(filters.Regex(r'^⭐ Избранное$'), self.show_favorites))
-        self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.search_books))
+        self.application.add_handler(MessageHandler(filters.TEXT, self.search_books))
         self.application.add_handler(CallbackQueryHandler(self.handle_button_click))
 
     async def start(self, update, context):
@@ -98,7 +98,7 @@ class BookBot:
                 return
             
             for book in favorites:
-                msg = f"⭐ <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book.get('description', '')[:300]}..."
+                msg = f"⭐ <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book.get('description', '')[:500]}..."
                 
                 keyboard = [[
                     InlineKeyboardButton("❌ Удалить из избранного", callback_data=f"remove_{book['id']}")
@@ -131,13 +131,14 @@ class BookBot:
     
         if data == "none":
             return
-        
         try:
             action, book_id = data.split("_", 1)
         
             if action == "add":
                 book_data = await self._get_book_data(book_id)
                 if book_data:
+                    print("if")        
+
                     book_data["user_id"] = user_id
                     await self.db.save_book(book_data)
                     await query.edit_message_reply_markup(
@@ -156,16 +157,73 @@ class BookBot:
                     await query.answer("Книга не найдена в избранном", show_alert=True)
                 
         except Exception as e:
-            logger.error(f"Ошибка обработки кнопки: {e}")
-            await query.answer("Произошла ошибка", show_alert=True)
+            logging.error(f"Ошибка: {e}")
     async def _get_book_data(self, book_id):
-        """Получение данных книги по ID (заглушка)"""
-        # В реальной реализации нужно или:
-        # 1. Хранить последние найденные книги в временном хранилище
-        # 2. Делать запрос к API по book_id
-        for book in getattr(self, 'last_search_results', []):
-            if book.get('id') == book_id:
-                return book
+        """Получает полные данные книги по ID из доступных API"""
+        try:
+            # Пробуем получить из Google Books API
+            if not book_id.startswith('OL'):  # Google Books ID обычно не начинается с OL
+                print("if not")
+                google_params = {
+                    "key": os.getenv("GOOGLE_BOOKS_API_KEY"),
+                    "q": f"id:{book_id}"
+                }
+                async with self.google_api.session.get(
+                    f"{self.google_api.BASE_URL}",
+                    params=google_params
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('items'):
+                            item = data['items'][0]
+                            volume = item.get('volumeInfo', {})
+                            return {
+                                "id": item.get('id'),
+                                "title": volume.get('title'),
+                                "authors": ", ".join(volume.get('authors', ["Неизвестен"])),
+                                "description": volume.get('description', "Нет описания"),
+                                "thumbnail": volume.get('imageLinks', {}).get('thumbnail')
+                            }
+    
+            # Если не нашли в Google Books, пробуем Open Library
+            if book_id.startswith('OL') or not book_id:  # Open Library ID обычно начинается с OL
+                async with self.open_lib_api.session.get(
+                    f"{self.open_lib_api.BASE_URL}/works/{book_id}.json"
+                ) as response:
+                    if response.status == 200:
+                        work_data = await response.json()
+                        description = work_data.get('description')
+                        if isinstance(description, dict):
+                            description = description.get('value', "Нет описания")
+                    
+                    # Получаем обложку отдельно
+                        cover_id = work_data.get('covers', [None])[0]
+                        thumbnail = f"https://covers.openlibrary.org/b/id/{cover_id}-M.jpg" if cover_id else None
+                    
+                    # Получаем авторов
+                        authors = []
+                        if work_data.get('authors'):
+                            for author in work_data['authors']:
+                                if isinstance(author, dict) and author.get('author'):
+                                    author_key = author['author'].get('key')
+                                    if author_key:
+                                        async with self.open_lib_api.session.get(
+                                            f"{self.open_lib_api.BASE_URL}{author_key}.json"
+                                        ) as author_resp:
+                                            if author_resp.status == 200:
+                                                author_data = await author_resp.json()
+                                                authors.append(author_data.get('name', 'Неизвестный автор'))
+                    
+                        return {
+                            "id": book_id,
+                            "title": work_data.get('title', 'Без названия'),
+                            "authors": ", ".join(authors) if authors else "Неизвестен",
+                            "description": description or "Нет описания",
+                            "thumbnail": thumbnail
+                        }
+    
+        except Exception as e:
+            print("Ошибка добавления в избранное")
         return None
     def run(self):
         self.application.run_polling()
@@ -173,3 +231,4 @@ class BookBot:
 if __name__ == "__main__":
     bot = BookBot()
     bot.run()
+
