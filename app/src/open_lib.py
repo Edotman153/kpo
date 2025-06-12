@@ -11,7 +11,7 @@ class OpenLibraryAPI:
         # OpenLibrary не требует API ключа, но можно добавить кастомные настройки
         self.session = requests.Session()
     
-    def search_books(self, query, max_results=5):
+    async def search_books(self, query, max_results=5):
         params = {
             "q": query,
             "limit": max_results,
