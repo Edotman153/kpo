@@ -32,18 +32,65 @@ class Database:
             thumbnail_url=book_data.get("thumbnail"),
             user_id=book_data["user_id"]
         )
-        session.merge(book)  # Обновит существующую или добавит новую
+        session.merge(book)
         session.commit()
         session.close()
+
+    def get_books(self, user_id):
+        """
+        Возвращает список книг для указанного пользователя
+        
+        Args:
+            user_id (int): ID пользователя Telegram
+            
+        Returns:
+            list: Список словарей с информацией о книгах
+                  [{"id": "...", "title": "...", ...}, ...]
+        """
+        session = self.Session()
+        try:
+            books = session.query(Book).filter_by(user_id=user_id).all()
+            return [{
+                "id": book.id,
+                "title": book.title,
+                "authors": book.authors,
+                "description": book.description,
+                "thumbnail": book.thumbnail_url,
+                "user_id": book.user_id
+            } for book in books]
+        finally:
+            session.close()
 
 # Пример использования
 if __name__ == "__main__":
     db = Database()
-    test_book = {
-        "id": "test123",
-        "title": "Тестовая книга",
-        "authors": "Автор Тест",
-        "description": "Это тестовое описание",
-        "user_id": 864730973
-    }
-    db.save_book(test_book)
+    
+    # Тестовые данные
+    test_books = [
+        {
+            "id": "book1",
+            "title": "Тестовая книга 1",
+            "authors": "Автор 1",
+            "description": "Описание 1",
+            "thumbnail": "http://example.com/cover1.jpg",
+            "user_id": 12345
+        },
+        {
+            "id": "book2",
+            "title": "Тестовая книга 2",
+            "authors": "Автор 2",
+            "description": "Описание 2",
+            "thumbnail": None,
+            "user_id": 12345
+        }
+    ]
+    
+    # Сохраняем книги
+    for book in test_books:
+        db.save_book(book)
+    
+    # Получаем книги пользователя
+    user_books = db.get_books(12345)
+    print("Найденные книги:")
+    for book in user_books:
+        print(f"{book['title']} by {book['authors']}")
