@@ -18,7 +18,7 @@ class BookBot:
         self.application.add_handler(MessageHandler(Filters.Text, self.handle_message))
     
     async def start(self, update, context):
-        await update.message.reply_text("Привет! Отправь мне название книги для поиска.")
+        await update.message.reply_text("Привет! Для поиска книги напиши /search название книги")
     
     async def search(self, update, context):
         query = " ".join(context.args)
