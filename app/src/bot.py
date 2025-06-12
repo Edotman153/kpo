@@ -16,54 +16,42 @@ class BookBot:
         self.db = Database()
         self.application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
         
-        # Создаем клавиатуру, которая будет показываться всегда
         self.reply_keyboard = ReplyKeyboardMarkup(
             keyboard=[
-                [KeyboardButton("🔍 Поиск книги"), KeyboardButton("ℹ Помощь")],
+                [KeyboardButton("ℹ Помощь")],
                 [KeyboardButton("⭐ Избранное")]
             ],
             resize_keyboard=True,
             input_field_placeholder="Выберите действие или введите название книги"
         )
         
-        # Регистрация обработчиков
         self.application.add_handler(CommandHandler("start", self.start))
-        self.application.add_handler(MessageHandler(Filters.TEXT & ~Filters.COMMAND, self.handle_message))
-        self.application.add_handler(MessageHandler(Filters.Regex(r'^🔍 Поиск книги$'), self.handle_search_button))
-    
+        self.application.add_handler(MessageHandler(Filters.Regex(r'Помощь$'), self.help))
+        self.application.add_handler(MessageHandler(Filters.Regex(r'^⭐ Избранное$'), self.show_favorites))
+        self.application.add_handler(MessageHandler(Filters.TEXT, self.search_books))
     async def start(self, update, context):
         """Обработчик команды /start - показывает клавиатуру"""
         await update.message.reply_text(
             "📚 Добро пожаловать в книжный бот!\n\n"
-            "Вы можете:\n"
-            "- Нажать кнопку '🔍 Поиск книги' и ввести название\n"
-            "- Просто написать название книги в чат",
+            "C его помощью можно искать книги, просто введите название",
             reply_markup=self.reply_keyboard
         )
-    
+    async def help(self, update, context):
+        await update.message.reply_text("Вы можете:\n"
+					"- Искать книги, просто введите название\n"
+                                        "- Добавлять книги в избранное, для этого нужно всего лишь....\n"
+                                        "- Удалять книги из избранного\n"
+                                        "- Смотреть, какие книги находятся в избранном"
+                                        , reply_markup=self.reply_keyboard)
     async def handle_search_button(self, update, context):
         """Обработчик нажатия кнопки поиска"""
         await update.message.reply_text(
             "Введите название книги или автора:",
             reply_markup=self.reply_keyboard
         )
-    
-    async def handle_message(self, update, context):
-        """Обработчик всех текстовых сообщений"""
-        text = update.message.text
-        
-        if text.lower() in ["помощь", "ℹ помощь"]:
-            await self.start(update, context)
-        elif text.lower() in ["избранное", "⭐ избранное"]:
-            await self.show_favorites(update, context)
-        elif text.lower() == "🔍 поиск книги":
-            await self.handle_search_button(update, context)
-        else:
-            # Если просто ввели текст - считаем это поиском книги
-            await self.search_books(update, context, text)
-    
-    async def search_books(self, update, context, query):
+    async def search_books(self, update, context):
         """Поиск книг и вывод результатов"""
+        query = update.message.text
         if not query:
             await update.message.reply_text("Пожалуйста, введите название книги")
             return
@@ -73,7 +61,7 @@ class BookBot:
         if not books:
             books = await self.open_library_api.search_books(query)
             if not books:
-                await update.message.reply_text("Книги не найдены 😢 Попробуйте другой запрос")
+                await update.message.reply_text("Книги не найдены 😢\nПожалуйста, попробуйте другой запрос")
                 return
         for book in books:
             msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:500]}..."
