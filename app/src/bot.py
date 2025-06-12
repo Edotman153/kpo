@@ -13,44 +13,94 @@ class BookBot:
         self.api = GoogleBooksAPI()
         self.db = Database()
         self.application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
+        
+        # Создаем клавиатуру, которая будет показываться всегда
+        self.reply_keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton("🔍 Поиск книги"), KeyboardButton("ℹ Помощь")],
+                [KeyboardButton("⭐ Избранное")]
+            ],
+            resize_keyboard=True,
+            input_field_placeholder="Выберите действие или введите название книги"
+        )
+        
         # Регистрация обработчиков
         self.application.add_handler(CommandHandler("start", self.start))
-        self.application.add_handler(CommandHandler("search", self.search))
-        self.application.add_handler(CommandHandler("help", self.help))
-        self.application.add_handler(MessageHandler(Filters.Text, self.handle_message))
-    async def start(self, update, context):
-        keyboard = [
-            [KeyboardButton("/search")],
-            [KeyboardButton("/help")]
-        ]
-        reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text("Привет! Для поиска книги напиши /search название книги", reply_markup=reply_markup)
+        self.application.add_handler(MessageHandler(Filters.TEXT & ~Filters.COMMAND, self.handle_message))
+        self.application.add_handler(MessageHandler(Filters.Regex(r'^🔍 Поиск книги$'), self.handle_search_button))
     
-    async def search(self, update, context):
-        query = " ".join(context.args)
+    async def start(self, update, context):
+        """Обработчик команды /start - показывает клавиатуру"""
+        await update.message.reply_text(
+            "📚 Добро пожаловать в книжный бот!\n\n"
+            "Вы можете:\n"
+            "- Нажать кнопку '🔍 Поиск книги' и ввести название\n"
+            "- Просто написать название книги в чат",
+            reply_markup=self.reply_keyboard
+        )
+    
+    async def handle_search_button(self, update, context):
+        """Обработчик нажатия кнопки поиска"""
+        await update.message.reply_text(
+            "Введите название книги или автора:",
+            reply_markup=self.reply_keyboard
+        )
+    
+    async def handle_message(self, update, context):
+        """Обработчик всех текстовых сообщений"""
+        text = update.message.text
+        
+        if text.lower() in ["помощь", "ℹ помощь"]:
+            await self.start(update, context)
+        elif text.lower() in ["избранное", "⭐ избранное"]:
+            await self.show_favorites(update, context)
+        elif text.lower() == "🔍 поиск книги":
+            await self.handle_search_button(update, context)
+        else:
+            # Если просто ввели текст - считаем это поиском книги
+            await self.search_books(update, context, text)
+    
+    async def search_books(self, update, context, query):
+        """Поиск книг и вывод результатов"""
         if not query:
-            await update.message.reply_text("Укажите запрос: /search Название книги")
+            await update.message.reply_text("Пожалуйста, введите название книги")
             return
         
-        books = self.api.search_books(query)
+        books = await self.api.search_books(query)
+        
         if not books:
-            await update.message.reply_text("Книги не найдены 😢")
+            await update.message.reply_text("Книги не найдены 😢 Попробуйте другой запрос")
             return
         
         for book in books:
-            msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:500]}..."
+            msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:300]}..."
+            
             if book.get("thumbnail"):
-                await update.message.reply_photo(book["thumbnail"], caption=msg, parse_mode="HTML")
+                await update.message.reply_photo(
+                    photo=book["thumbnail"],
+                    caption=msg,
+                    parse_mode="HTML"
+                )
             else:
-                await update.message.reply_text(msg, parse_mode="HTML")
-    async def help(self, update, context):
-        await update.message.reply_text("/search название книги для поиска, пример: /search гарри поттер")    
-    async def handle_message(self, update, context):
-        await self.search(update, context)
+                await update.message.reply_text(
+                    msg,
+                    parse_mode="HTML"
+                )
+    
+    async def show_favorites(self, update, context):
+        """Показать избранные книги"""
+        favorites = await self.db.get_favorites(update.effective_user.id)
+        if not favorites:
+            await update.message.reply_text("У вас пока нет избранных книг")
+            return
+        
+        for book in favorites:
+            msg = f"⭐ <b>{book['title']}</b>\n👤 {book['authors']}"
+            await update.message.reply_text(msg, parse_mode="HTML")
     
     def run(self):
         self.application.run_polling()
 
-#if name == "__main__":
-bot = BookBot()
-bot.run()
+if __name__ == "__main__":
+    bot = BookBot()
+    bot.run()
