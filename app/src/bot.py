@@ -1,4 +1,5 @@
 import asyncio
+from open_lib import OpenLibraryAPI
 from telegram.ext import Application, CommandHandler, MessageHandler, filters as Filters
 from telegram import ReplyKeyboardMarkup, KeyboardButton
 from google_books import GoogleBooksAPI
@@ -10,7 +11,8 @@ load_dotenv()
 
 class BookBot:
     def __init__(self):
-        self.api = GoogleBooksAPI()
+        self.google_api = GoogleBooksAPI()
+        self.open_library_api = OpenLibraryAPI()
         self.db = Database()
         self.application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
         
@@ -66,15 +68,16 @@ class BookBot:
             await update.message.reply_text("Пожалуйста, введите название книги")
             return
         
-        books = await self.api.search_books(query)
+        books = await self.google_api.search_books(query)
         
         if not books:
-            await update.message.reply_text("Книги не найдены 😢 Попробуйте другой запрос")
-            return
-        
+            books = await self.open_library_api.search_books(query)
+            if not books:
+                await update.message.reply_text("Книги не найдены 😢 Попробуйте другой запрос")
+                return
         for book in books:
-            msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:300]}..."
-            
+            msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book['description'][:500]}..."
+        
             if book.get("thumbnail"):
                 await update.message.reply_photo(
                     photo=book["thumbnail"],
@@ -85,7 +88,7 @@ class BookBot:
                 await update.message.reply_text(
                     msg,
                     parse_mode="HTML"
-                )
+               )
     
     async def show_favorites(self, update, context):
         """Показать избранные книги"""
