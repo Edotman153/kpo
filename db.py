@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, String, Integer, Text
+from sqlalchemy import create_engine, Column, String, Integer, Text, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
@@ -8,12 +8,13 @@ load_dotenv()
 Base = declarative_base()
 
 class Book(Base):
-    __tablename__ = "books"
+    __tablename__ = "favorite_book"
     id = Column(String, primary_key=True)  # ID из Google Books
     title = Column(String)
     authors = Column(String)
     description = Column(Text)
     thumbnail_url = Column(String)
+    user_id = Column(BigInteger)
 
 class Database:
     def __init__(self):
@@ -28,7 +29,8 @@ class Database:
             title=book_data["title"],
             authors=book_data["authors"],
             description=book_data["description"],
-            thumbnail_url=book_data.get("thumbnail")
+            thumbnail_url=book_data.get("thumbnail"),
+            user_id=book_data["user_id"]
         )
         session.merge(book)  # Обновит существующую или добавит новую
         session.commit()
@@ -41,6 +43,7 @@ if __name__ == "__main__":
         "id": "test123",
         "title": "Тестовая книга",
         "authors": "Автор Тест",
-        "description": "Это тестовое описание"
+        "description": "Это тестовое описание",
+        "user_id": 864730973
     }
     db.save_book(test_book)
