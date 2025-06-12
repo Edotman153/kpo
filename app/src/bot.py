@@ -7,6 +7,8 @@ from db import Database
 from dotenv import load_dotenv
 import os
 import logging
+import requests
+
 load_dotenv()
 
 class BookBot:
@@ -137,10 +139,10 @@ class BookBot:
             if action == "add":
                 book_data = await self._get_book_data(book_id)
                 if book_data:
-                    print("if")        
+                    #print("if")        
 
                     book_data["user_id"] = user_id
-                    await self.db.save_book(book_data)
+                    await self.db.add_favorite(book_data)
                     await query.edit_message_reply_markup(
                         reply_markup=InlineKeyboardMarkup([
                             [InlineKeyboardButton("✅ В избранном", callback_data="none")]
@@ -163,27 +165,24 @@ class BookBot:
         try:
             # Пробуем получить из Google Books API
             if not book_id.startswith('OL'):  # Google Books ID обычно не начинается с OL
-                print("if not")
                 google_params = {
                     "key": os.getenv("GOOGLE_BOOKS_API_KEY"),
-                    "q": f"id:{book_id}"
+                    "q": f"{book_id}"
                 }
-                async with self.google_api.session.get(
-                    f"{self.google_api.BASE_URL}",
-                    params=google_params
-                ) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('items'):
-                            item = data['items'][0]
-                            volume = item.get('volumeInfo', {})
-                            return {
-                                "id": item.get('id'),
-                                "title": volume.get('title'),
-                                "authors": ", ".join(volume.get('authors', ["Неизвестен"])),
-                                "description": volume.get('description', "Нет описания"),
-                                "thumbnail": volume.get('imageLinks', {}).get('thumbnail')
-                            }
+                response = requests.get(self.google_api.BASE_URL, params=google_params)
+                response.raise_for_status()
+                data = response.json()
+                if data.get('items'):
+                    #print('items')
+                    item = data['items'][0]
+                    volume = item.get('volumeInfo', {})
+                    return {
+                        "id": item.get('id'),
+                        "title": volume.get('title'),
+                        "authors": ", ".join(volume.get('authors', ["Неизвестен"])),
+                        "description": volume.get('description', "Нет описания"),
+                        "thumbnail": volume.get('imageLinks', {}).get('thumbnail')
+                    }
     
             # Если не нашли в Google Books, пробуем Open Library
             if book_id.startswith('OL') or not book_id:  # Open Library ID обычно начинается с OL
@@ -223,7 +222,7 @@ class BookBot:
                         }
     
         except Exception as e:
-            print("Ошибка добавления в избранное")
+            print(f"Ошибка добавления в избранное: {e}")
         return None
     def run(self):
         self.application.run_polling()
