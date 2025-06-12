@@ -1,6 +1,5 @@
 import os
 import requests
-import aiohttp
 from dotenv import load_dotenv
 
 load_dotenv()
