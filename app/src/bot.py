@@ -57,8 +57,8 @@ class BookBot:
             return
         
         try:
-            #books = await self.google_api.search_books(query)
-            if True:
+            books = await self.google_api.search_books(query)
+            if not books:
                 books = await self.open_lib_api.search_books(query)
                 if not books:
                     await update.message.reply_text("Книги не найдены 😢\nПопробуйте другой запрос")
