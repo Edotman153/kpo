@@ -6,7 +6,6 @@ from telegram.ext import CallbackContext
 from app.src.bot import BookBot
 import os
 
-# Фикстуры для тестов
 @pytest.fixture
 def mock_engine():
     return MagicMock()
@@ -34,10 +33,8 @@ def mock_update():
     update.effective_user.first_name = "Test"
     update.effective_user.is_bot = False
     
-    # Мокаем message отдельно, так как он будет переопределяться
     update.message = None
     
-    # Мокаем callback_query
     update.callback_query = MagicMock(spec=CallbackQuery)
     update.callback_query.id = 1
     update.callback_query.from_user = update.effective_user
@@ -46,7 +43,7 @@ def mock_update():
     update.callback_query.message = MagicMock(spec=Message)
     update.callback_query.message.chat = MagicMock(spec=Chat)
     update.callback_query.message.chat.id = 123
-    update.callback_query.message._bot = MagicMock()  # Важно для работы reply_text
+    update.callback_query.message._bot = MagicMock()
     
     return update
 
@@ -59,7 +56,6 @@ def mock_context():
 @pytest.mark.asyncio
 async def test_multiple_search_requests(bot, mock_update, mock_context):
     """Тестирование обработки множественных одновременных поисковых запросов"""
-    # Мокируем API
     bot.google_api.search_books = AsyncMock(return_value=[{
         "id": "test1",
         "title": "Test Book",
@@ -70,11 +66,9 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
     
     bot.open_lib_api.search_books = AsyncMock(return_value=[])
     
-    # Мокируем методы бота
     mock_bot = MagicMock()
     mock_context.bot = mock_bot
     
-    # Создаем мок для сообщения с установленным ботом
     def create_mock_message(text):
         message = MagicMock(spec=Message)
         message.text = text
@@ -82,28 +76,24 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
         message.chat.id = 123
         message.reply_text = AsyncMock()
         message.reply_photo = AsyncMock()
-        message._bot = mock_bot  # Устанавливаем бота для сообщения
+        message._bot = mock_bot
         return message
     
-    # Создаем 10 одновременных запросов
     tasks = []
-    for i in range(100):
+    num = 1000
+    for i in range(num):
         mock_update.message = create_mock_message(f"Test Query {i}")
         task = asyncio.create_task(bot.search_books(mock_update, mock_context))
         tasks.append(task)
     
     await asyncio.gather(*tasks)
     
-    # Проверяем, что все запросы были обработаны
-    assert bot.google_api.search_books.await_count == 100
+    assert bot.google_api.search_books.await_count == num
     
-    # Проверяем, что для каждого запроса был вызван reply_text (так как thumbnail=None)
-    assert mock_update.message.reply_text.await_count == 100
+    assert mock_update.message.reply_text.await_count == num
     
-    # Проверяем, что reply_photo не вызывался
     assert mock_update.message.reply_photo.await_count == 0
     
-    # Проверяем содержимое ответов
     for call in mock_update.message.reply_text.call_args_list:
         args, kwargs = call
         assert "Test Book" in args[0]  # Проверяем, что в ответе есть название книги
@@ -114,13 +104,14 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
 async def test_high_load_favorites(bot, mock_update, mock_context):
     """Тестирование загрузки избранного при большом количестве книг"""
     # Создаем мок для 100 книг в избранном
+    num = 1000
     mock_favorites = [{
         "id": f"test{i}",
         "title": f"Test Book {i}",
         "authors": f"Test Author {i}",
         "description": f"Test Description {i}",
         "thumbnail": None if i % 2 else f"http://example.com/cover_{i}.jpg"
-    } for i in range(100)]
+    } for i in range(num)]
     
     bot.db.get_favorites = AsyncMock(return_value=mock_favorites)
     
@@ -137,8 +128,8 @@ async def test_high_load_favorites(bot, mock_update, mock_context):
     
     # Проверяем, что все книги были обработаны
     assert bot.db.get_favorites.await_count == 1
-    assert mock_update.message.reply_text.await_count == 50  # Для книг без thumbnail
-    assert mock_update.message.reply_photo.await_count == 50  # Для книг с thumbnail
+    assert mock_update.message.reply_text.await_count == num / 2  # Для книг без thumbnail
+    assert mock_update.message.reply_photo.await_count == num / 2  # Для книг с thumbnail
 
 @pytest.mark.asyncio
 async def test_error_handling_under_load(bot, mock_update, mock_context):
@@ -153,10 +144,10 @@ async def test_error_handling_under_load(bot, mock_update, mock_context):
     mock_update.message.chat.id = 123
     mock_update.message.reply_text = AsyncMock()
     mock_update.message._bot = mock_context.bot
-    
-    # Создаем 10 запросов, которые должны завершиться ошибкой
+
+    num = 1000
     tasks = []
-    for i in range(10):
+    for i in range(num):
         mock_update.message.text = f"Failing Query {i}"
         task = asyncio.create_task(bot.search_books(mock_update, mock_context))
         tasks.append(task)
@@ -164,6 +155,6 @@ async def test_error_handling_under_load(bot, mock_update, mock_context):
     await asyncio.gather(*tasks)
     
     # Проверяем, что все запросы вернули сообщение об ошибке
-    assert mock_update.message.reply_text.await_count == 10
+    assert mock_update.message.reply_text.await_count == num
     for call in mock_update.message.reply_text.call_args_list:
         assert "ошибка" in call[0][0].lower() or "error" in call[0][0].lower()
