@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from ...app.src.db import Database, FavoriteBook, Base
+from app.src.db import Database, FavoriteBook, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
@@ -13,9 +13,7 @@ def test_db():
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     
-    db = Database()
-    db.engine = engine  # Переопределяем engine на тестовый
-    db.Session = Session
+    db = Database(engine, Session)
     
     yield db
     

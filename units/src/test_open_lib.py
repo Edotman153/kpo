@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from ...app.src.open_lib import OpenLibraryAPI
+from app.src.open_lib import OpenLibraryAPI
 import json
 import requests
 

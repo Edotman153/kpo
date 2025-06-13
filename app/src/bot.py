@@ -4,21 +4,33 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-#if __name__ == "__main__":
-from google_books import GoogleBooksAPI
-from open_lib import OpenLibraryAPI
-from db import Database
+from app.src.google_books import GoogleBooksAPI
+from app.src.open_lib import OpenLibraryAPI
+from app.src.db import Database
 from dotenv import load_dotenv
 import logging
 import requests
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
 
 load_dotenv()
 
 class BookBot:
-    def __init__(self):
+    def __init__(self, engine=None, session=None):
         self.google_api = GoogleBooksAPI()
         self.open_lib_api = OpenLibraryAPI()
-        self.db = Database()
+        if not engine:
+            self.engine = create_engine(os.getenv("DB_URL"))
+        else:
+            self.engine = engine
+        Base = declarative_base()
+        Base.metadata.create_all(self.engine)
+        if not session:
+            self.session = sessionmaker(bind=self.engine)
+        else:
+            self.session = session
+        self.db = Database(engine, self.session)
         self.application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
         
         self.reply_keyboard = ReplyKeyboardMarkup(

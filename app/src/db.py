@@ -16,10 +16,16 @@ class FavoriteBook(Base):
     user_id = Column(BigInteger)  # ID пользователя Telegram
 
 class Database:
-    def __init__(self):
-        self.engine = create_engine(os.getenv("DB_URL"))
+    def __init__(self, engine=None, session=None):
+        if not engine:
+            self.engine = create_engine(os.getenv("DB_URL"))
+        else:
+            self.engine = engine #create_engine(os.getenv("DB_URL"))
         Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+        if not session:
+            self.Session = sessionmaker(bind=self.engine)
+        else:
+            self.Session = session #sessionmaker(bind=self.engine)
 
     async def add_favorite(self, book_data: dict):
         """Добавляет книгу в избранное"""

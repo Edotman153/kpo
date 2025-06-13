@@ -6,13 +6,21 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from telegram import Update, Message, CallbackQuery, Chat, User, PhotoSize
 from telegram.ext import CallbackContext
-from ...app.src.bot import BookBot
+from app.src.bot import BookBot
 import asyncio
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
+
 pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def bot():
     with patch('app.src.google_books.GoogleBooksAPI'), patch('app.src.open_lib.OpenLibraryAPI'), patch('app.src.db.Database'):
-        return BookBot()
+        engine = create_engine("sqlite:///:memory:")
+        Base = declarative_base()
+        Base.metadata.create_all(engine)
+        Session = sessionmaker(bind=engine)
+
+        return BookBot(engine, Session)
 
 @pytest.fixture
 def update():
