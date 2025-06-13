@@ -87,7 +87,7 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
     
     # Создаем 10 одновременных запросов
     tasks = []
-    for i in range(10):
+    for i in range(100):
         mock_update.message = create_mock_message(f"Test Query {i}")
         task = asyncio.create_task(bot.search_books(mock_update, mock_context))
         tasks.append(task)
@@ -95,10 +95,10 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
     await asyncio.gather(*tasks)
     
     # Проверяем, что все запросы были обработаны
-    assert bot.google_api.search_books.await_count == 10
+    assert bot.google_api.search_books.await_count == 100
     
     # Проверяем, что для каждого запроса был вызван reply_text (так как thumbnail=None)
-    assert mock_update.message.reply_text.await_count == 10
+    assert mock_update.message.reply_text.await_count == 100
     
     # Проверяем, что reply_photo не вызывался
     assert mock_update.message.reply_photo.await_count == 0

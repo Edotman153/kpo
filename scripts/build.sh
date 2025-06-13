@@ -8,6 +8,8 @@ docker build -t book-bot-units ./units
 
 docker build -t book-bot-integration ./integration
 
+docker build -t book-bot-load ./load
+
 docker rm -f book-bot-db
 # Запуск БД
 docker run -d --name book-bot-db \
