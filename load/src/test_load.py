@@ -139,3 +139,31 @@ async def test_high_load_favorites(bot, mock_update, mock_context):
     assert bot.db.get_favorites.await_count == 1
     assert mock_update.message.reply_text.await_count == 50  # Для книг без thumbnail
     assert mock_update.message.reply_photo.await_count == 50  # Для книг с thumbnail
+
+@pytest.mark.asyncio
+async def test_error_handling_under_load(bot, mock_update, mock_context):
+    """Тестирование обработки ошибок при нагрузке"""
+    # Мокируем ошибку API
+    bot.google_api.search_books = AsyncMock(side_effect=Exception("API Error"))
+    bot.open_lib_api.search_books = AsyncMock(side_effect=Exception("API Error"))
+    
+    # Мокаем методы сообщения
+    mock_update.message = MagicMock(spec=Message)
+    mock_update.message.chat = MagicMock(spec=Chat)
+    mock_update.message.chat.id = 123
+    mock_update.message.reply_text = AsyncMock()
+    mock_update.message._bot = mock_context.bot
+    
+    # Создаем 10 запросов, которые должны завершиться ошибкой
+    tasks = []
+    for i in range(10):
+        mock_update.message.text = f"Failing Query {i}"
+        task = asyncio.create_task(bot.search_books(mock_update, mock_context))
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
+    
+    # Проверяем, что все запросы вернули сообщение об ошибке
+    assert mock_update.message.reply_text.await_count == 10
+    for call in mock_update.message.reply_text.call_args_list:
+        assert "ошибка" in call[0][0].lower() or "error" in call[0][0].lower()
