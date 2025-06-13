@@ -109,3 +109,33 @@ async def test_multiple_search_requests(bot, mock_update, mock_context):
         assert "Test Book" in args[0]  # Проверяем, что в ответе есть название книги
         assert kwargs.get("parse_mode") == "HTML"
         assert isinstance(kwargs.get("reply_markup"), InlineKeyboardMarkup)
+
+@pytest.mark.asyncio
+async def test_high_load_favorites(bot, mock_update, mock_context):
+    """Тестирование загрузки избранного при большом количестве книг"""
+    # Создаем мок для 100 книг в избранном
+    mock_favorites = [{
+        "id": f"test{i}",
+        "title": f"Test Book {i}",
+        "authors": f"Test Author {i}",
+        "description": f"Test Description {i}",
+        "thumbnail": None if i % 2 else f"http://example.com/cover_{i}.jpg"
+    } for i in range(100)]
+    
+    bot.db.get_favorites = AsyncMock(return_value=mock_favorites)
+    
+    # Мокаем методы сообщения
+    mock_update.message = MagicMock(spec=Message)
+    mock_update.message.chat = MagicMock(spec=Chat)
+    mock_update.message.chat.id = 123
+    mock_update.message.reply_text = AsyncMock()
+    mock_update.message.reply_photo = AsyncMock()
+    mock_update.message._bot = mock_context.bot
+    
+    # Вызываем показ избранного
+    await bot.show_favorites(mock_update, mock_context)
+    
+    # Проверяем, что все книги были обработаны
+    assert bot.db.get_favorites.await_count == 1
+    assert mock_update.message.reply_text.await_count == 50  # Для книг без thumbnail
+    assert mock_update.message.reply_photo.await_count == 50  # Для книг с thumbnail
