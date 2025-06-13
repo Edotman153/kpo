@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from app.src.db import Database, FavoriteBook, Base
+from ...app.src.db import Database, FavoriteBook, Base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os

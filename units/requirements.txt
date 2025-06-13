@@ -1,4 +1,8 @@
 pytest
+pytest-asyncio
+psycopg2-binary
+python-telegram-bot
 sqlalchemy
 asyncio
 requests
+dotenv

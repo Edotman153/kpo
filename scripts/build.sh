@@ -1,5 +1,5 @@
 #!/bin/bash
-
+cp .env ./app/.env
 # Билд основного приложения
 docker build -t book-bot-app ./app
 

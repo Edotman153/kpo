@@ -1,13 +1,17 @@
+import os
+import sys
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(project_root)
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from telegram import Update, Message, CallbackQuery, Chat, User, PhotoSize
 from telegram.ext import CallbackContext
-from app.src.bot import BookBot
+from ...app.src.bot import BookBot
 import asyncio
 pytestmark = pytest.mark.asyncio
 @pytest.fixture
 def bot():
-    with patch('app.src.bot.GoogleBooksAPI'), patch('app.src.bot.OpenLibraryAPI'), patch('app.src.bot.Database'):
+    with patch('app.src.google_books.GoogleBooksAPI'), patch('app.src.open_lib.OpenLibraryAPI'), patch('app.src.db.Database'):
         return BookBot()
 
 @pytest.fixture
