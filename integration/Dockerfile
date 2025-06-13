@@ -8,4 +8,4 @@ COPY . .
 
 ENV PYTHONPATH=/app
 
-CMD ["pytest", "units/"]
+CMD ["pytest", "integration/"]

@@ -67,6 +67,15 @@ response:
         authors: string[]
         description: string
         imageLinks: {thumbnail: string}
+OpenLibrary API:
+endpoint: GET https://openlibrary.org/search.json
+params:
+{
+  q: string      	// Поисковый запрос
+  limit?: number 	// Лимит результатов (по умолчанию 10)
+  language?: string  // Язык (например "rus" для русского)
+  fields?: string	// Дополнительные поля (через запятую)
+}
 
 Нефункциональные требования:
 Время ответа бота: <1 сек
@@ -92,3 +101,9 @@ CREATE INDEX idx_book_id ON favorite_book(book_id);
 Асинхронные запросы: Использование aiohttp вместо requests
 Батчинг: Группировка запросов к БД
 CDN: Для кэширования обложек книг
+Как пользоваться ботом:
+1. Создать в корневой папке репозитория файл .env и заполнить его по шаблону .env.template
+2. Запустить нужные скрипты в зависимости от цели:
+  Для запуска самого бота запустить скрипты scripts/build.sh, затем scripts/run.sh.
+  Для запуска юнит тестов запустить скрипты scripts/build.sh, затем scripts/units.sh.
+  Для запуска интеграционного теста запустить скрипты scripts/build.sh, затем scripts/integration.sh.

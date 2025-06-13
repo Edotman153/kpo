@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from app.src.google_books import GoogleBooksAPI
+from ...app.src.google_books import GoogleBooksAPI
 import asyncio
 import requests
 

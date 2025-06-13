@@ -1,10 +1,12 @@
 #!/bin/bash
-
+cp .env ./app/.env
 # Билд основного приложения
 docker build -t book-bot-app ./app
 
-# Билд unit тестов
+# Билд тестов
 docker build -t book-bot-units ./units
+
+docker build -t book-bot-integration ./integration
 
 docker rm -f book-bot-db
 # Запуск БД

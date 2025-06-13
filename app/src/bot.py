@@ -1,11 +1,14 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import asyncio
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
-from .google_books import GoogleBooksAPI
-from .open_lib import OpenLibraryAPI
-from .db import Database
+#if __name__ == "__main__":
+from google_books import GoogleBooksAPI
+from open_lib import OpenLibraryAPI
+from db import Database
 from dotenv import load_dotenv
-import os
 import logging
 import requests
 
