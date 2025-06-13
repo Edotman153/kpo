@@ -1,0 +1,7 @@
+pytest
+pytest-asyncio
+python-telegram-bot
+requests
+dotenv
+sqlalchemy
+psycopg2-binary
