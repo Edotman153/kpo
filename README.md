@@ -67,6 +67,15 @@ response:
         authors: string[]
         description: string
         imageLinks: {thumbnail: string}
+OpenLibrary API:
+endpoint: GET https://openlibrary.org/search.json
+params:
+{
+  q: string      	// Поисковый запрос
+  limit?: number 	// Лимит результатов (по умолчанию 10)
+  language?: string  // Язык (например "rus" для русского)
+  fields?: string	// Дополнительные поля (через запятую)
+}
 
 Нефункциональные требования:
 Время ответа бота: <1 сек
