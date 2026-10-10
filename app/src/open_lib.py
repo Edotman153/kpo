@@ -40,7 +40,7 @@ class OpenLibraryAPI:
                 "id": doc.get("key", "").split("/")[-1],  # Извлекаем ID из ключа
                 "title": doc.get("title", "Без названия"),
                 "authors": ", ".join(doc.get("author_name", ["Неизвестен"])[:200]),
-                "description": book_data.get("description", "Нет описания"),
+                "description": self._clean_description(book_data.get("description", "Нет описания")),
                 "thumbnail": self._get_cover_url(doc.get("cover_i"))
             })
         return books
@@ -68,10 +68,12 @@ class OpenLibraryAPI:
             return desc.get("value", "Нет описания")
         return str(desc)[:500]  # Обрезаем слишком длинные описания
 
-# Пример использования (аналогично GoogleBooksAPI)
+# Пример использования: python -m app.src.open_lib
 if __name__ == "__main__":
+    import asyncio
+
     api = OpenLibraryAPI()
-    books = api.search_books("Гарри Поттер")
+    books = asyncio.run(api.search_books("Гарри Поттер"))
     for book in books:
         print(f"{book['title']} by {book['authors']}")
         print(f"Cover: {book['thumbnail']}")

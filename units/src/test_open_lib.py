@@ -20,8 +20,8 @@ def mock_book_details():
         "title": "Test Book"
     }
 
-@pytest.mark.asyncio
 class TestOpenLibraryAPI:
+    @pytest.mark.asyncio
     @patch('app.src.open_lib.requests.Session')
     async def test_search_books_success(self, mock_session, mock_book_data, mock_book_details):
         # Setup mock responses
@@ -55,6 +55,7 @@ class TestOpenLibraryAPI:
         assert books[0]["thumbnail"] == "https://covers.openlibrary.org/b/id/123456-M.jpg"
         assert books[0]["id"] == "OL123W"
 
+    @pytest.mark.asyncio
     @patch('app.src.open_lib.requests.Session')
     async def test_search_books_empty_result(self, mock_session):
         # Setup empty response
@@ -73,6 +74,7 @@ class TestOpenLibraryAPI:
         # Assertions
         assert books == []
 
+    @pytest.mark.asyncio
     @patch('app.src.open_lib.requests.Session')
     async def test_search_books_error_handling(self, mock_session):
         # Setup error response
@@ -99,6 +101,14 @@ class TestOpenLibraryAPI:
         assert len(books) == 1
         assert books[0]["title"] == "Test Book"
         assert books[0]["authors"] == "Test Author"
+
+    def test_parse_results_dict_description(self, mock_book_data):
+        api = OpenLibraryAPI()
+        api._get_book_details = lambda key: {"description": {"type": "/type/text", "value": "From dict"}}
+
+        books = api._parse_results({"docs": [mock_book_data]})
+
+        assert books[0]["description"] == "From dict"
 
     def test_get_cover_url(self):
         api = OpenLibraryAPI()

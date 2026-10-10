@@ -13,7 +13,8 @@ class FavoriteBook(Base):
     authors = Column(String)
     description = Column(Text)
     thumbnail_url = Column(String)
-    user_id = Column(BigInteger)  # ID пользователя Telegram
+    # Ключ составной: одну и ту же книгу могут добавить разные пользователи
+    user_id = Column(BigInteger, primary_key=True)  # ID пользователя Telegram
 
 class Database:
     def __init__(self, engine=None, session=None):

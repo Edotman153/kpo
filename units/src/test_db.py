@@ -62,6 +62,18 @@ class TestDatabase:
         assert books[0].description == "Updated Description"
         session.close()
 
+    async def test_same_book_for_different_users(self, test_db, sample_book):
+        # Одну и ту же книгу могут добавить разные пользователи, и они не мешают друг другу
+        await test_db.add_favorite(sample_book)
+        await test_db.add_favorite({**sample_book, "user_id": 54321})
+
+        assert len(await test_db.get_favorites(12345)) == 1
+        assert len(await test_db.get_favorites(54321)) == 1
+
+        # удаление у одного не затрагивает другого
+        assert await test_db.remove_favorite(54321, "test123") is True
+        assert len(await test_db.get_favorites(12345)) == 1
+
     async def test_get_favorites_empty(self, test_db):
         books = await test_db.get_favorites(12345)
         assert books == []

@@ -162,15 +162,13 @@ async def test_handle_button_click_invalid_data(bot, callback_query, context):
 @pytest.mark.asyncio
 async def test_get_book_data_google(bot):
     test_data = {
-        "items": [{
-            "id": "test_id",
-            "volumeInfo": {
-                "title": "Test Book",
-                "authors": ["Test Author"],
-                "description": "Test Description",
-                "imageLinks": {"thumbnail": "http://test.com/image.jpg"}
-            }
-        }]
+        "id": "test_id",
+        "volumeInfo": {
+            "title": "Test Book",
+            "authors": ["Test Author"],
+            "description": "Test Description",
+            "imageLinks": {"thumbnail": "http://test.com/image.jpg"}
+        }
     }
     
     with patch('requests.get') as mock_get:
@@ -180,6 +178,8 @@ async def test_get_book_data_google(bot):
         result = await bot._get_book_data("test_id")
         assert result["title"] == "Test Book"
         assert result["id"] == "test_id"
+        # книга запрашивается по id: /volumes/{id}
+        assert mock_get.call_args.args[0].endswith("/volumes/test_id")
 
 @pytest.mark.asyncio
 async def test_get_book_data_openlib(bot):
@@ -226,3 +226,33 @@ async def test_get_book_data_openlib(bot):
         assert mock_session.get.call_count == 2
         mock_session.get.assert_any_call(f"{bot.open_lib_api.BASE_URL}/works/{book_id}.json")
         mock_session.get.assert_any_call(f"{bot.open_lib_api.BASE_URL}/authors/OL123A.json")
+
+
+@pytest.mark.asyncio
+async def test_search_books_escapes_html(bot, update, context):
+    """Спецсимволы в названии/описании не должны ломать parse_mode=HTML"""
+    bot.google_api.search_books = AsyncMock(return_value=[{
+        "title": "Tom & <Jerry>",
+        "authors": "A & B",
+        "description": "<b>bold</b> & more",
+        "id": "test_id",
+    }])
+
+    await bot.search_books(update, context)
+
+    text = update.message.reply_text.call_args.args[0]
+    assert "Tom &amp; &lt;Jerry&gt;" in text
+    assert "&lt;b&gt;bold&lt;/b&gt; &amp; more" in text
+
+
+@pytest.mark.asyncio
+async def test_show_favorites_without_description(bot, update, context):
+    """У книги в избранном может не быть описания (NULL в БД)"""
+    bot.db.get_favorites = AsyncMock(return_value=[
+        {"id": "x", "title": "No Desc", "authors": "Someone", "description": None, "thumbnail": None}
+    ])
+
+    await bot.show_favorites(update, context)
+
+    update.message.reply_text.assert_called_once()
+    assert "No Desc" in update.message.reply_text.call_args.args[0]

@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-import asyncio
+import html
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from app.src.google_books import GoogleBooksAPI
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import logging
 import requests
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 
 
 load_dotenv()
@@ -24,13 +24,11 @@ class BookBot:
             self.engine = create_engine(os.getenv("DB_URL"))
         else:
             self.engine = engine
-        Base = declarative_base()
-        Base.metadata.create_all(self.engine)
         if not session:
             self.session = sessionmaker(bind=self.engine)
         else:
             self.session = session
-        self.db = Database(engine, self.session)
+        self.db = Database(self.engine, self.session)
         self.application = Application.builder().token(os.getenv("TELEGRAM_TOKEN")).build()
         
         self.reply_keyboard = ReplyKeyboardMarkup(
@@ -47,6 +45,15 @@ class BookBot:
         self.application.add_handler(MessageHandler(filters.Regex(r'^⭐ Избранное$'), self.show_favorites))
         self.application.add_handler(MessageHandler(filters.TEXT, self.search_books))
         self.application.add_handler(CallbackQueryHandler(self.handle_button_click))
+
+    @staticmethod
+    def _format_book(icon, book):
+        """Текст карточки книги для Telegram (parse_mode=HTML, поэтому всё экранируем)"""
+        description = str(book.get("description") or "Описание отсутствует")
+        short = description[:500] + ("..." if len(description) > 500 else "")
+        title = html.escape(str(book.get("title") or "Без названия"))
+        authors = html.escape(str(book.get("authors") or "Неизвестен"))
+        return f"{icon} <b>{title}</b>\n👤 {authors}\n\n{html.escape(short)}"
 
     async def start(self, update, context):
         await update.message.reply_text(
@@ -82,7 +89,7 @@ class BookBot:
             for book in books:
                 book["user_id"] = update.effective_user.id
                 
-                msg = f"📖 <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book.get('description', 'Описание отсутствует')[:500]}..."
+                msg = self._format_book("📖", book)
                 
                 keyboard = [[
                     InlineKeyboardButton("⭐ Добавить в избранное", callback_data=f"add_{book['id']}")
@@ -115,7 +122,7 @@ class BookBot:
                 return
             
             for book in favorites:
-                msg = f"⭐ <b>{book['title']}</b>\n👤 {book['authors']}\n\n{book.get('description', '')[:500]}..."
+                msg = self._format_book("⭐", book)
                 
                 keyboard = [[
                     InlineKeyboardButton("❌ Удалить из избранного", callback_data=f"remove_{book['id']}")
@@ -180,16 +187,14 @@ class BookBot:
         try:
             # Пробуем получить из Google Books API
             if not book_id.startswith('OL'):  # Google Books ID обычно не начинается с OL
-                google_params = {
-                    "key": os.getenv("GOOGLE_BOOKS_API_KEY"),
-                    "q": f"{book_id}"
-                }
-                response = requests.get(self.google_api.BASE_URL, params=google_params)
+                response = requests.get(
+                    f"{self.google_api.BASE_URL}/{book_id}",
+                    params={"key": os.getenv("GOOGLE_BOOKS_API_KEY")},
+                    timeout=10,
+                )
                 response.raise_for_status()
-                data = response.json()
-                if data.get('items'):
-                    #print('items')
-                    item = data['items'][0]
+                item = response.json()
+                if item.get('id'):
                     volume = item.get('volumeInfo', {})
                     return {
                         "id": item.get('id'),

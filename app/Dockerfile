@@ -1,13 +1,9 @@
-FROM python:3.8-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
-#ENV PYTHONPATH="/app:${PYTHONPATH}"
-
-#RUN pip install -e .
 
 CMD ["python", "src/bot.py"]

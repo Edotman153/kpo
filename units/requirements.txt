@@ -1,8 +1,7 @@
-pytest
-pytest-asyncio
-psycopg2-binary
-python-telegram-bot
-sqlalchemy
-asyncio
-requests
-dotenv
+python-telegram-bot>=22,<23
+SQLAlchemy>=2.0,<2.2
+psycopg2-binary>=2.9
+python-dotenv>=1.0
+requests>=2.31
+pytest>=8
+pytest-asyncio>=0.23

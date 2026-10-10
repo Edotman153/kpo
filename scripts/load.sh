@@ -1,8 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Запуск нагрузочных тестов. Нужен предварительный scripts/build.sh.
+# shellcheck source=lib.sh
+source "$(dirname "$0")/lib.sh"
+require_db
 
-# Запуск unit-тестов
 docker run --rm \
-  --network container:book-bot-db \
-  -e DB_URL=postgresql://user:pass@localhost:5432/books \
-  -v $(pwd):/app \
-  book-bot-load
+    --network "container:${DB_CONTAINER}" \
+    -e DB_URL="$DB_URL_IN_DOCKER" \
+    -e TELEGRAM_TOKEN="$TEST_TOKEN" \
+    -v "$PWD":/app \
+    book-bot-load

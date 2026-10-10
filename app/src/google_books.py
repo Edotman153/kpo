@@ -19,7 +19,7 @@ class GoogleBooksAPI:
         }
         
         try:
-            response = requests.get(self.BASE_URL, params=params)
+            response = requests.get(self.BASE_URL, params=params, timeout=10)
             response.raise_for_status()
             return self._parse_results(response.json())
         except requests.exceptions.RequestException as e:
@@ -39,9 +39,10 @@ class GoogleBooksAPI:
             })
         return books
 
-# Пример использования
+# Пример использования: python -m app.src.google_books
 if __name__ == "__main__":
+    import asyncio
+
     api = GoogleBooksAPI()
-    books = api.search_books("Гарри Поттер")
-    for book in books:
+    for book in asyncio.run(api.search_books("Гарри Поттер")):
         print(f"{book['title']} by {book['authors']}")
