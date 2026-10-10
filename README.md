@@ -22,13 +22,6 @@ Telegram-бот для поиска книг. Пишешь название, а�
 | Удалить из избранного | кнопка «❌ Удалить из избранного» под книгой в избранном |
 | Справка | кнопка «ℹ Помощь» |
 
-<!--
-## Скриншоты
-
-Вставь сюда скриншоты бота: открой README в редакторе на GitHub и перетащи картинки в окно,
-GitHub сам вставит ссылки. Потом удали эти строки-комментарии.
--->
-
 ## Запуск
 
 Понадобится токен бота: напиши [@BotFather](https://t.me/BotFather) в Telegram, команда `/newbot`.
@@ -75,6 +68,20 @@ python app/src/bot.py
 ```
 
 Для PostgreSQL используй строку вида `postgresql+psycopg2://user:pass@localhost:5432/books`. Таблицы создаются автоматически при старте.
+
+## Скриншоты
+
+<img width="880" height="486" alt="Снимок экрана от 2026-10-10 14-23-34" src="https://github.com/user-attachments/assets/1f0fd719-d6b3-428c-ab78-6fc89f45441e" />
+
+<img width="801" height="766" alt="Снимок экрана от 2026-10-10 14-23-49" src="https://github.com/user-attachments/assets/a22b8934-903c-46b8-bf41-8a8bc1b16414" />
+
+<img width="877" height="428" alt="Снимок экрана от 2026-10-10 14-24-07" src="https://github.com/user-attachments/assets/071c2384-a4b2-4036-b32f-7bc4ff59c867" />
+
+<img width="855" height="967" alt="Снимок экрана от 2026-10-10 14-24-24" src="https://github.com/user-attachments/assets/a65ef35b-5a41-4ae5-850e-9259d22004e6" />
+
+<img width="1237" height="197" alt="Снимок экрана от 2026-10-10 14-25-05" src="https://github.com/user-attachments/assets/f4440217-590f-4b3a-94e2-05db33e19276" />
+
+<img width="846" height="310" alt="Снимок экрана от 2026-10-10 14-25-16" src="https://github.com/user-attachments/assets/7504e564-f4d5-4c43-a03f-843f82a30625" />
 
 ## Тесты
 
